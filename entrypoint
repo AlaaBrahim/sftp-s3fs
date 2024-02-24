@@ -11,7 +11,12 @@ else
     #create user
     groupadd -g 1000 $FTP_USER
     useradd -m -s /bin/bash -u 1000 -g $FTP_USER $FTP_USER
-    usermod -p "*" $FTP_USER
+    
+    if [ -n "$pass" ]; then
+        echo "$FTP_USER:$pass" | chpasswd $chpasswdOptions
+    else
+        usermod -p "*" $FTP_USER # disabled password
+    fi
 
     mkdir -p /home/$FTP_USER/.ssh
     chmod 700 /home/$FTP_USER/.ssh/

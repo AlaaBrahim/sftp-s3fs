@@ -10,7 +10,7 @@ Protocol 2
 #login
 RSAAuthentication yes
 PubkeyAuthentication yes
-PasswordAuthentication no
+PasswordAuthentication yes
 
 # Faster connection
 # See: https://github.com/atmoz/sftp/issues/11
