@@ -15,8 +15,8 @@ else
     groupadd -g 1000 $FTP_USER
     useradd -m -s /bin/bash -u 1000 -g $FTP_USER $FTP_USER
 
-    if [ -n "$pass" ]; then
-        echo "$FTP_USER:$pass" | chpasswd $chpasswdOptions
+    if [ -n "$FTP_PASSWORD" ]; then
+        echo "$FTP_USER:$FTP_PASSWORD" | chpasswd $chpasswdOptions
     else
         usermod -p "*" $FTP_USER # disabled password
     fi
