@@ -1,7 +1,7 @@
 # Supported tags and respective `Dockerfile` links
 
-- [`debian-jessie`, `debian`, `latest` (*Dockerfile*)](https://github.com/atmoz/sftp/blob/master/Dockerfile) [![](https://images.microbadger.com/badges/image/atmoz/sftp.svg)](http://microbadger.com/images/atmoz/sftp "Get your own image badge on microbadger.com")
-- [`alpine-3.4`, `alpine` (*Dockerfile*)](https://github.com/atmoz/sftp/blob/alpine/Dockerfile) [![](https://images.microbadger.com/badges/image/atmoz/sftp:alpine.svg)](http://microbadger.com/images/atmoz/sftp "Get your own image badge on microbadger.com")
+- [`debian-jessie`, `debian`, `latest` (_Dockerfile_)](https://github.com/atmoz/sftp/blob/master/Dockerfile) [![](https://images.microbadger.com/badges/image/atmoz/sftp.svg)](http://microbadger.com/images/atmoz/sftp "Get your own image badge on microbadger.com")
+- [`alpine-3.4`, `alpine` (_Dockerfile_)](https://github.com/atmoz/sftp/blob/alpine/Dockerfile) [![](https://images.microbadger.com/badges/image/atmoz/sftp:alpine.svg)](http://microbadger.com/images/atmoz/sftp "Get your own image badge on microbadger.com")
 
 # Securely share your files with S3 filesystem baked-in with s3fs_fuse
 
@@ -22,32 +22,36 @@ This is an automated build linked with the [debian](https://hub.docker.com/_/deb
   - The users are chrooted to their home directory, so you must mount the
     volumes in separate directories inside the user's home directory
     (/home/user/**mounted-directory**).
-- s3fs is currently only supported with a single user-dir. 
+- s3fs is currently only supported with a single user-dir.
   Adding additional mounts for multiple users should be simple, but not in my original use-case.
   last-in wins currently
 
 # Examples
 
-
 ## Simplest docker run example
 
 ```
-docker run -e S3_BUCKET_NAME=yourbucket[:/OPTIONAL_SUBDIR] -e AWSACCESSKEYID=your_aws_access_key_id -e AWSSECRETACCESSKEY=your_aws_secret_key --security-opt apparmor:unconfined --cap-add mknod --cap-add sys_admin --device=/dev/fuse -p 21:22 -d chessracer/sftp-s3fs testuser:pass:::sync_to_s3
+docker run -e S3_BUCKET_NAME=yourbucket[:/OPTIONAL_SUBDIR] -e AWSACCESSKEYID=your_aws_access_key_id -e AWSSECRETACCESSKEY=your_aws_secret_key -e FTP_USER=user -e FTP_PASSWORD=12345 -e AWS_REGION=us-east-1 --security-opt apparmor:unconfined --cap-add mknod --cap-add sys_admin --device=/dev/fuse -p 2222:22 -d ghcr.io/alaabrahim/sftp-s3fs:master
 
 ```
-User "testuser" with password "pass" can login with sftp and upload files to a folder in that container at /home/testuser/sync_to_s3. Files uploaded this way are synced to S3 in the named S3_BUCKET_NAME.
-The provided AWSACCESSKEYID must be associated with a role that has access permissions to the S3 bucket. 
+
+User "user" with password "12345" can login with sftp and upload files to a folder in that container at /home/user/. Files uploaded this way are synced to S3 in the named S3_BUCKET_NAME.
+The provided AWSACCESSKEYID must be associated with a role that has access permissions to the S3 bucket.
+If you want to use a different region, you can set the AWS_REGION environment variable to the desired region. The default region if no region is supplied is ap-northeast-1.
+If you are running the image on an EC2 instance with an IAM role that has access to the S3 bucket, you can omit the AWSACCESSKEYID and AWSSECRETACCESSKEY environment variables.
 
 ### Using Docker Compose:
+
 Run the provided docker-compose.yml file, providing values in the environment for for AWSACCESSKEYID, AWSSECRETACCESSKEY, S3_BUCKET_NAME, USERNAME, and PASSWORD. eg:
 
 ```
-AWSACCESSKEYID=your_aws_access_key_id AWSSECRETACCESSKEY=your_aws_secret_key S3_BUCKET_NAME=your_bucket_name USERNAME=testuser PASSWORD=pass docker-compose up -d
+AWSACCESSKEYID=your_aws_access_key_id AWSSECRETACCESSKEY=your_aws_secret_key S3_BUCKET_NAME=your_bucket_name FTP_USER=user FTP_PASSWORD=12345 docker-compose up -d
 ```
 
 ## Example Login: connect to a locally-running instance on the default docker IP:
+
 ```
-sftp -P 21 testuser@172.17.0.1:sync_to_s3
+sftp -P 2222 user@172.17.0.1
 sftp> put somefile
 sftp> ls
 somefile
@@ -61,7 +65,7 @@ docker run \
     -v /host/share:/home/foo/share \
     -v /host/documents:/home/foo/documents \
     -v /host/http:/home/bar/http \
-    -p 2222:22 -d atmoz/sftp
+    -p 2222:22 -d ghcr.io/alaabrahim/sftp-s3fs:master
 ```
 
 /host/users.conf:
@@ -69,64 +73,4 @@ docker run \
 ```
 foo:123:1001
 bar:abc:1002
-```
-
-## Encrypted password
-
-Add `:e` behind password to mark it as encrypted. Use single quotes if using terminal.
-
-```
-docker run \
-    -v /host/share:/home/foo/share \
-    -p 2222:22 -d atmoz/sftp \
-    'foo:$1$0G2g0GSt$ewU0t6GXG15.0hWoOX8X9.:e:1001'
-```
-
-Tip: you can use [atmoz/makepasswd](https://hub.docker.com/r/atmoz/makepasswd/) to generate encrypted passwords:  
-`echo -n "your-password" | docker run -i --rm atmoz/makepasswd --crypt-md5 --clearfrom=-`
-
-## Using SSH key (and no password)
-
-Mount all public keys in the user's `.ssh/keys/` directory. All keys are automatically
-appended to `.ssh/authorized_keys`.
-
-```
-docker run \
-    -v /host/id_rsa.pub:/home/foo/.ssh/keys/id_rsa.pub:ro \
-    -v /host/id_other.pub:/home/foo/.ssh/keys/id_other.pub:ro \
-    -v /host/share:/home/foo/share \
-    -p 2222:22 -d atmoz/sftp \
-    foo::1001
-```
-
-## Execute custom scripts or applications
-
-Put your programs in `/etc/sftp.d/` and it will automatically run when the container starts.
-See next section for an example.
-
-## Bindmount dirs from another location
-
-If you are using `--volumes-from` or just want to make a custom directory
-available in user's home directory, you can add a script to `/etc/sftp.d/` that
-bindmounts after container starts.
-
-```
-#!/bin/bash
-# File mounted as: /etc/sftp.d/bindmount.sh
-# Just an example (make your own)
-
-function bindmount() {
-    if [ -d "$1" ]; then
-        mkdir -p "$2"
-    fi
-    mount --bind $3 "$1" "$2"
-}
-
-# Remember permissions, you may have to fix them:
-# chown -R :users /data/common
-
-bindmount /data/admin-tools /home/admin/tools
-bindmount /data/common /home/dave/common
-bindmount /data/common /home/peter/common
-bindmount /data/docs /home/peter/docs --read-only
 ```
