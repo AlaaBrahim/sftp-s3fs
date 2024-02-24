@@ -2,7 +2,10 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-FTP_USER=${FTP_USER:-"app"}
+# If no user is specified, default to 'app'
+if [ -z "$FTP_USER" ]; then
+  FTP_USER="app"
+fi
 
 # Create users only on first run
 if $(cat /etc/passwd | cut -d: -f1 | grep -q "^$FTP_USER"); then
@@ -11,7 +14,7 @@ else
     #create user
     groupadd -g 1000 $FTP_USER
     useradd -m -s /bin/bash -u 1000 -g $FTP_USER $FTP_USER
-    
+
     if [ -n "$pass" ]; then
         echo "$FTP_USER:$pass" | chpasswd $chpasswdOptions
     else
