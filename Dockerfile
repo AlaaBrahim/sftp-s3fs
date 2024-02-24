@@ -1,5 +1,5 @@
 FROM debian:latest
-MAINTAINER Jonathan Baker [chessracer@gmail.com]
+LABEL Jonathan Baker [chessracer@gmail.com]
 
 # - Install packages
 # - OpenSSH needs /var/run/sshd to run
@@ -25,7 +25,7 @@ COPY README.md /
 
 # - add s3fs_fuse filesystem:
 
-ENV VERSION 1.80
+ENV VERSION 1.93
 
 RUN curl -L https://github.com/s3fs-fuse/s3fs-fuse/archive/v${VERSION}.tar.gz | tar zxv -C /usr/src
 RUN cd /usr/src/s3fs-fuse-${VERSION} && ./autogen.sh && ./configure --prefix=/usr && make && make install
