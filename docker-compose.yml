@@ -1,18 +1,20 @@
-version: '2'
+version: '3'
 
 services:
     sftp-s3fs:
-        image: sftp-s3fs
+        image: ghcr.io/alaabrahim/sftp-s3fs:master
         environment:
           AWSACCESSKEYID: ${AWSACCESSKEYID}
           AWSSECRETACCESSKEY: ${AWSSECRETACCESSKEY}
           S3_BUCKET_NAME: ${S3_BUCKET_NAME}
           AWS_REGION: ${AWS_REGION}
+          FTP_USER: ${FTP_USER}
+          FTP_PASSWORD: ${FTP_PASSWORD}
           SSH_HOST_KEYS_DIR: /root/host_keys
         ports:
-          - "9522:22"
+          - "2222:22"
         volumes:
-          - ./authorized_keys:/home/sorimachi/.ssh/authorized_keys
+          - ./authorized_keys:/home/${FTP_USER}/.ssh/authorized_keys
           - ./host_keys:/root/host_keys
         restart: always
         devices:
